@@ -81,6 +81,27 @@ describe("BullProvider (multi-prefix)", () => {
     });
   });
 
+  it.each(["*", "dynamic*"])(
+    "refreshes discovered prefixes and queues for %s without reconnecting",
+    async (pattern) => {
+      await withBullProvider({ prefixes: [pattern] }, async (provider) => {
+        expect(await provider.getPrefixes()).toEqual(["bull"]);
+        expect(await provider.getQueues()).toEqual([]);
+
+        const added = await seedBullQueue({ prefix: "dynamic", name: "email" });
+        seeded.push(added);
+        expect(await provider.getPrefixes()).toEqual(["dynamic"]);
+        expect(await provider.getQueues()).toEqual([
+          expect.objectContaining({ name: "email", prefix: "dynamic" }),
+        ]);
+
+        await added.queue.obliterate({ force: true });
+        expect(await provider.getPrefixes()).toEqual(["bull"]);
+        expect(await provider.getQueues()).toEqual([]);
+      });
+    },
+  );
+
   it("caches Bull.Queue instances per (prefix, name) composite key", async () => {
     seeded.push(
       await seedBullQueue({ prefix: "a", name: "email" }),

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import type { PrivateWorker } from "@/components/workers/types";
 import { WorkerSheet } from "@/components/workers/WorkerSheet";
 import { WorkersTable } from "@/components/workers/WorkersTable";
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/queues/$queueName/workers")({
 
 function QueueWorkersPage() {
   const trpc = useTRPC();
+  const polling = usePollingQueryOptions();
   const { queueName: queueParam } = Route.useParams();
   const [selected, setSelected] = useState<PrivateWorker | null>(null);
 
@@ -38,11 +40,7 @@ function QueueWorkersPage() {
     isFetching,
     refetch,
   } = useQuery(
-    trpc.workers.list.queryOptions({
-      queueName,
-      prefix,
-      limit: 500,
-    }),
+    trpc.workers.list.queryOptions({ queueName, prefix, limit: 500 }, polling),
   );
 
   return (

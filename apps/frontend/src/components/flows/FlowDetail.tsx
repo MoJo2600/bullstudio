@@ -1,4 +1,3 @@
-import type { FlowNode } from "@bullstudio/connect-types";
 import { Button } from "@bullstudio/ui/components/button";
 import { Skeleton } from "@bullstudio/ui/components/skeleton";
 import { useQuery } from "@tanstack/react-query";
@@ -12,17 +11,10 @@ import {
 } from "lucide-react";
 import { useCallback } from "react";
 import { FlowGraph } from "@/components/flows/FlowGraph";
-import { usePolling } from "@/components/PollingProvider";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useTRPC } from "@/integrations/trpc/react";
 import { DEFAULT_JOBS_SEARCH } from "@/lib/jobs";
 import { queueKey as buildQueueKey } from "@/lib/queue-key";
-
-function checkHasActiveJobs(node: FlowNode): boolean {
-  const activeStates = ["active", "waiting", "delayed", "waiting-children"];
-  if (activeStates.includes(node.status)) return true;
-  if (!node.children) return false;
-  return node.children.some(checkHasActiveJobs);
-}
 
 interface FlowDetailProps {
   flowId: string;
@@ -39,7 +31,7 @@ export function FlowDetail({
 }: FlowDetailProps) {
   const trpc = useTRPC();
   const navigate = useNavigate();
-  const { enabled: pollEnabled, interval: pollInterval } = usePolling();
+  const polling = usePollingQueryOptions();
 
   const {
     data: flowTree,
@@ -49,14 +41,7 @@ export function FlowDetail({
   } = useQuery(
     trpc.flows.get.queryOptions(
       { queueKey, queueName, flowId, prefix },
-      {
-        refetchInterval(query) {
-          if (!pollEnabled) return false;
-          const data = query.state.data;
-          if (!data) return false;
-          return checkHasActiveJobs(data.root) ? pollInterval : false;
-        },
-      },
+      polling,
     ),
   );
 

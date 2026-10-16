@@ -112,7 +112,9 @@ documentIdentity: {
 
 ## Polling
 
-Live views poll Redis to stay current. On pay-per-command or shared Redis this can get expensive, so you can control how often Bullstudio polls — or turn it off entirely. The setting applies globally to every live view (connection status, job and flow detail, and flow lists).
+Live views poll Redis to stay current. On pay-per-command or shared Redis this can get expensive, so you can control how often Bullstudio polls — or turn it off entirely. The setting applies globally to sidebar queues, connection status, jobs, workers, schedulers, metrics, flows, and job and flow details, including job logs.
+
+While a view is visible, polling continues even when lists are empty or jobs and flows have finished. This lets Bullstudio detect external additions, removals, and retries without requiring a restart or manual refresh.
 
 ```ts
 polling: {

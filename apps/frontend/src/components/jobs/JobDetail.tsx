@@ -1,4 +1,3 @@
-import type { FlowNode } from "@bullstudio/connect-types";
 import dayjs from "@bullstudio/dayjs";
 import { Button } from "@bullstudio/ui/components/button";
 import { Skeleton } from "@bullstudio/ui/components/skeleton";
@@ -19,17 +18,10 @@ import { AlertTriangle, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { FlowGraph } from "@/components/flows/FlowGraph";
-import { usePolling } from "@/components/PollingProvider";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useTRPC } from "@/integrations/trpc/react";
 import { DEFAULT_JOBS_SEARCH } from "@/lib/jobs";
 import { queueKey as buildQueueKey } from "@/lib/queue-key";
-
-function flowHasActiveJobs(node: FlowNode): boolean {
-  const activeStates = ["active", "waiting", "delayed", "waiting-children"];
-  if (activeStates.includes(node.status)) return true;
-  if (!node.children) return false;
-  return node.children.some(flowHasActiveJobs);
-}
 
 interface JobDetailProps {
   jobId: string;
@@ -49,7 +41,7 @@ export function JobDetail({
 }: JobDetailProps) {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { enabled: pollEnabled, interval: pollInterval } = usePolling();
+  const polling = usePollingQueryOptions();
 
   const {
     data: job,
@@ -64,22 +56,14 @@ export function JobDetail({
         jobId,
         prefix,
       },
-      {
-        refetchInterval(query) {
-          if (!pollEnabled) return false;
-          const jobStatus = query.state.data?.status;
-          const isTerminal =
-            jobStatus === "completed" || jobStatus === "failed";
-          return isTerminal ? false : pollInterval;
-        },
-      },
+      polling,
     ),
   );
 
   const { data: logsData } = useQuery(
     trpc.jobs.logs.queryOptions(
       { queueKey, queueName, jobId, prefix },
-      { enabled: !!job },
+      { ...polling, enabled: !!job },
     ),
   );
 
@@ -88,15 +72,7 @@ export function JobDetail({
   const { data: flowTree } = useQuery(
     trpc.flows.forJob.queryOptions(
       { queueKey, queueName, jobId, prefix },
-      {
-        enabled: !!job,
-        refetchInterval(query) {
-          if (!pollEnabled) return false;
-          const data = query.state.data;
-          if (!data) return false;
-          return flowHasActiveJobs(data.root) ? pollInterval : false;
-        },
-      },
+      { ...polling, enabled: !!job },
     ),
   );
   const isFlow = !!flowTree && flowTree.totalNodes > 1;

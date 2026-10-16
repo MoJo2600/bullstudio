@@ -18,6 +18,7 @@ import { MetricCardsGrid } from "@/components/overview/MetricCardsGrid";
 import { ProcessingTimeChart } from "@/components/overview/ProcessingTimeChart";
 import { SlowestJobsTable } from "@/components/overview/SlowestJobsTable";
 import { ThroughputChart } from "@/components/overview/ThroughputChart";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useTRPC } from "@/integrations/trpc/react";
 import { queueNameFromParam, resolveQueueFromParam } from "@/lib/queue-key";
 import { getQueueSourceViewModel } from "@/lib/queue-source-status";
@@ -45,6 +46,7 @@ const JOB_STATE_SKELETON_KEYS = [
 
 function QueueOverview() {
   const trpc = useTRPC();
+  const polling = usePollingQueryOptions();
   const { queueName: queueParam } = Route.useParams();
   const [timeRange, setTimeRange] = useState<number>(5 / 60);
 
@@ -63,11 +65,10 @@ function QueueOverview() {
     : null;
 
   const { data: metrics, isLoading: loadingMetrics } = useQuery(
-    trpc.overview.metrics.queryOptions({
-      timeRangeHours: timeRange,
-      queueName,
-      prefix,
-    }),
+    trpc.overview.metrics.queryOptions(
+      { timeRangeHours: timeRange, queueName, prefix },
+      polling,
+    ),
   );
 
   return (

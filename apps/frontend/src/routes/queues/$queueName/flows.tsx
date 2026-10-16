@@ -26,7 +26,7 @@ import {
 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { FlowDetail } from "@/components/flows/FlowDetail";
-import { usePolling } from "@/components/PollingProvider";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useTRPC } from "@/integrations/trpc/react";
 import { queueNameFromParam, resolveQueueFromParam } from "@/lib/queue-key";
 
@@ -46,7 +46,7 @@ function QueueFlowsPage() {
   const trpc = useTRPC();
   const { queueName: queueParam } = Route.useParams();
   const [expandedFlowId, setExpandedFlowId] = useState<string | null>(null);
-  const { enabled: pollEnabled, interval: pollInterval } = usePolling();
+  const polling = usePollingQueryOptions();
 
   const { data: queues } = useQuery(trpc.queues.list.queryOptions());
   const queue = resolveQueueFromParam(queueParam, queues);
@@ -58,22 +58,7 @@ function QueueFlowsPage() {
     isLoading,
     refetch,
     isFetching,
-  } = useQuery(
-    trpc.flows.list.queryOptions(
-      { queueName, prefix },
-      {
-        refetchInterval(query) {
-          if (!pollEnabled) return false;
-          const flowsData = query.state.data;
-          if (!flowsData || flowsData.length === 0) return false;
-          const hasActiveFlows = flowsData.some(
-            (f) => !["completed", "failed"].includes(f.status),
-          );
-          return hasActiveFlows ? pollInterval : false;
-        },
-      },
-    ),
-  );
+  } = useQuery(trpc.flows.list.queryOptions({ queueName, prefix }, polling));
 
   const toggleFlow = (flowId: string) => {
     setExpandedFlowId((current) => (current === flowId ? null : flowId));

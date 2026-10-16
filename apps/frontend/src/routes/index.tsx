@@ -27,7 +27,7 @@ import { ProcessingTimeChart } from "@/components/overview/ProcessingTimeChart";
 import { QueueCard } from "@/components/overview/QueueCard";
 import { SlowestJobsTable } from "@/components/overview/SlowestJobsTable";
 import { ThroughputChart } from "@/components/overview/ThroughputChart";
-import { usePolling } from "@/components/PollingProvider";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useQueueSearch } from "@/components/QueueSearchProvider";
 import { useTRPC } from "@/integrations/trpc/react";
 import { queueRouteParam } from "@/lib/queue-key";
@@ -77,7 +77,7 @@ const PERF_SKELETON_KEYS = ["perf-1", "perf-2", "perf-3", "perf-4"];
 function OverviewPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
-  const { enabled: pollEnabled, interval: pollInterval } = usePolling();
+  const polling = usePollingQueryOptions();
   const { query } = useQueueSearch();
   const [timeRange, setTimeRange] = useState<number>(5 / 60);
 
@@ -85,17 +85,12 @@ function OverviewPage() {
   const refreshAll = () => queryClient.invalidateQueries();
 
   const { data: queues, isLoading: loadingQueues } = useQuery(
-    trpc.queues.list.queryOptions(undefined, {
-      refetchInterval: pollEnabled ? pollInterval : false,
-    }),
+    trpc.queues.list.queryOptions(undefined, polling),
   );
 
   // No queueName/prefix → the backend aggregates metrics across every queue.
   const { data: metrics, isLoading: loadingMetrics } = useQuery(
-    trpc.overview.metrics.queryOptions(
-      { timeRangeHours: timeRange },
-      { refetchInterval: pollEnabled ? pollInterval : false },
-    ),
+    trpc.overview.metrics.queryOptions({ timeRangeHours: timeRange }, polling),
   );
 
   const queueList = queues ?? [];

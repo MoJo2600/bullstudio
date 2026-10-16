@@ -58,6 +58,7 @@ import {
 import { Fragment, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { JobDetail } from "@/components/jobs/JobDetail";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useTRPC } from "@/integrations/trpc/react";
 import {
   FilterableStatus,
@@ -100,6 +101,7 @@ function useDebounce<T>(value: T, delay: number): T {
 function QueueJobsPage() {
   const trpc = useTRPC();
   const queryClient = useQueryClient();
+  const polling = usePollingQueryOptions();
   const navigate = useNavigate({ from: Route.fullPath });
   const { queueName: queueParam } = Route.useParams();
   const tableScrollRef = useRef<HTMLDivElement>(null);
@@ -187,16 +189,19 @@ function QueueJobsPage() {
     isFetching: fetchingJobs,
     refetch: refetchJobs,
   } = useQuery(
-    trpc.jobs.listSummary.queryOptions({
-      queueName,
-      prefix,
-      status: statusFilter !== "all" ? statusFilter : undefined,
-      search: q,
-      sortField,
-      sortOrder,
-      limit: pageSize,
-      offset: (page - 1) * pageSize,
-    }),
+    trpc.jobs.listSummary.queryOptions(
+      {
+        queueName,
+        prefix,
+        status: statusFilter !== "all" ? statusFilter : undefined,
+        search: q,
+        sortField,
+        sortOrder,
+        limit: pageSize,
+        offset: (page - 1) * pageSize,
+      },
+      polling,
+    ),
   );
 
   const retryAllMutation = useMutation(

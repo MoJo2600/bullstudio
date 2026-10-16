@@ -19,7 +19,7 @@ import { Link, useLocation } from "@tanstack/react-router";
 import { Database, LayoutDashboard, LogOut, Search, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { JobDistributionPie } from "@/components/overview/JobDistributionPie";
-import { usePolling } from "@/components/PollingProvider";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { useQueueSearch } from "@/components/QueueSearchProvider";
 import { SettingsDialog } from "@/components/SettingsDialog";
 import { VERSION } from "@/const";
@@ -94,7 +94,7 @@ export function AppSidebar() {
   const dashboardIdentity = getDashboardIdentity();
   const dashboardLogo = dashboardIdentity?.logo;
   const dashboardTitle = dashboardIdentity?.title ?? "bullstudio";
-  const { enabled: pollEnabled, interval: pollInterval } = usePolling();
+  const polling = usePollingQueryOptions();
   const { query, setQuery } = useQueueSearch();
   const [searchOpen, setSearchOpen] = useState(false);
 
@@ -110,9 +110,7 @@ export function AppSidebar() {
     // Poll so the connection indicator reflects Redis going down/recovering
     // instead of staying frozen on the last successful fetch. Honors the
     // user's polling preference so we don't keep hitting Redis when disabled.
-    trpc.connection.info.queryOptions(undefined, {
-      refetchInterval: pollEnabled ? pollInterval : false,
-    }),
+    trpc.connection.info.queryOptions(undefined, polling),
   );
   const queueSource = connectionInfo?.queueSource
     ? getQueueSourceViewModel(connectionInfo.queueSource)
@@ -131,7 +129,7 @@ export function AppSidebar() {
     return pathname === base || pathname.startsWith(`${base}/`);
   };
 
-  const queues = useQuery(trpc.queues.list.queryOptions());
+  const queues = useQuery(trpc.queues.list.queryOptions(undefined, polling));
 
   const queueList = queues.data ?? [];
   const filteredQueues = queueList.filter((queue) =>

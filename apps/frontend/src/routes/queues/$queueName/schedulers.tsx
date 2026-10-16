@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { Plus, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import { usePollingQueryOptions } from "@/components/PollingProvider";
 import { SchedulerSheet } from "@/components/schedulers/SchedulerSheet";
 import { SchedulersTable } from "@/components/schedulers/SchedulersTable";
 import type { PrivateScheduler } from "@/components/schedulers/types";
@@ -16,6 +17,7 @@ export const Route = createFileRoute("/queues/$queueName/schedulers")({
 
 function QueueSchedulersPage() {
   const trpc = useTRPC();
+  const polling = usePollingQueryOptions();
   const { queueName: queueParam } = Route.useParams();
 
   const [selected, setSelected] = useState<PrivateScheduler | null>(null);
@@ -41,11 +43,10 @@ function QueueSchedulersPage() {
     isFetching,
     refetch,
   } = useQuery(
-    trpc.schedulers.list.queryOptions({
-      queueName,
-      prefix,
-      limit: 200,
-    }),
+    trpc.schedulers.list.queryOptions(
+      { queueName, prefix, limit: 200 },
+      polling,
+    ),
   );
 
   const canCreate = mutationsEnabled && Boolean(queue);

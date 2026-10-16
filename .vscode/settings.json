@@ -2,5 +2,8 @@
   "tailwindCSS.experimental.configFile": {
     "packages/ui/src/styles/globals.css": "packages/ui/src/**",
     "apps/web/styles/globals.css": "apps/web/**"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "pnpm": true
   }
 }

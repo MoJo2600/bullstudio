@@ -76,26 +76,26 @@ export class BullMqProvider implements QueueService {
   }
 
   /**
-   * Resolve (and memoize) the prefixes to scan from the configured ones,
+   * Resolve the prefixes to scan from the configured ones,
    * expanding `*` (all prefixes) and glob patterns like `local:{*}` against
    * Redis. Falls back to the default prefix when none are configured.
    *
    * @returns The concrete prefixes to scan for this provider.
    */
   private async getActivePrefixes(): Promise<string[]> {
-    if (this.resolvedPrefixes) {
-      return this.resolvedPrefixes;
-    }
     const configured = this.config.prefixes;
     const hasPattern = configured?.some((p) => p.includes("*")) ?? false;
     if (hasPattern && this.connection) {
-      // Expand "*" (all prefixes) and globs like "local:{*}" against Redis.
-      this.resolvedPrefixes = await resolveConfiguredPrefixes(
+      return resolveConfiguredPrefixes(
         this.connection,
         configured,
         this.defaultPrefix,
       );
-    } else if (configured && configured.length > 0 && !hasPattern) {
+    }
+    if (this.resolvedPrefixes) {
+      return this.resolvedPrefixes;
+    }
+    if (configured && configured.length > 0 && !hasPattern) {
       this.resolvedPrefixes = configured;
     } else {
       this.resolvedPrefixes = [this.defaultPrefix];

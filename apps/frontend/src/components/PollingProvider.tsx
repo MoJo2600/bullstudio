@@ -137,3 +137,8 @@ export const usePolling = () => {
 
   return context;
 };
+
+export function usePollingQueryOptions(): { refetchInterval: number | false } {
+  const { enabled, interval } = usePolling();
+  return { refetchInterval: enabled ? interval : false };
+}
