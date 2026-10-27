@@ -708,11 +708,17 @@ async function getCompatibleWorkers(queue: Queue) {
   try {
     if (client.isCluster && typeof client.nodes === "function") {
       const clientsPerNode = await Promise.all(
-        client
-          .nodes()
-          .map(async (node) =>
-            parseMatchingWorkers(await node.clientList(), queue.name, matches),
-          ),
+        client.nodes().map(async (node) => {
+          const list =
+            typeof node.clientList === "function"
+              ? await node.clientList()
+              : await (
+                  node as unknown as {
+                    client(command: "LIST"): Promise<string>;
+                  }
+                ).client("LIST");
+          return parseMatchingWorkers(list, queue.name, matches);
+        }),
       );
       return clientsPerNode.reduce(
         (prev, current) => (prev.length > current.length ? prev : current),

@@ -381,6 +381,30 @@ describe("createBullMqQueueAdapter", () => {
     });
   });
 
+  it("discovers workers on Redis Cluster nodes exposing only client", async () => {
+    const client = vi.fn(
+      async () =>
+        "id=1 addr=127.0.0.1:5000 fd=8 name=bull:ZW1haWw= age=5 idle=1",
+    );
+    const queue = {
+      name: "email",
+      client: Promise.resolve({
+        isCluster: true,
+        nodes: () => [{ client }],
+      }),
+    } as unknown as Queue;
+    const adapter = createBullMqQueueAdapter(queue);
+
+    await expect(adapter.getWorkerCount()).resolves.toEqual({
+      queueName: "email",
+      count: 1,
+    });
+    await expect(adapter.listWorkers?.()).resolves.toMatchObject([
+      { queueName: "email", address: "127.0.0.1:5000" },
+    ]);
+    expect(client).toHaveBeenCalledWith("LIST");
+  });
+
   it("degrades gracefully when Redis blocks the CLIENT command", async () => {
     const queue = {
       name: "email",
@@ -404,7 +428,9 @@ describe("createBullMqQueueAdapter", () => {
       name: "email",
       client: Promise.resolve({
         clientList: async () => {
-          throw new Error("READONLY You can't write against a read only replica");
+          throw new Error(
+            "READONLY You can't write against a read only replica",
+          );
         },
       }),
     } as unknown as Queue;
